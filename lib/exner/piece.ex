@@ -1,7 +1,7 @@
 defmodule Exner.Piece do
   defstruct [:role, :color, origin: nil]
 
-  alias Exner.Square
+  alias Exner.{Move, Square}
 
   @roles ~w(pawn knight bishop rook queen king)a
   @colors ~w(white black)a
@@ -12,6 +12,11 @@ defmodule Exner.Piece do
       false -> {:error, :invalid_square, square}
     end
   end
+
+  def can_make_move?(%__MODULE__{role: role, color: color}, %Move{role: role, color: color}),
+    do: true
+
+  def can_make_move?(_, _), do: false
 
   def from(s) when is_bitstring(s) do
     case s |> to_charlist() |> List.first() |> from() do
