@@ -1,6 +1,6 @@
 # Exner
 
-**TODO: Add description**
+[Győző Exner](https://en.wikipedia.org/wiki/Gy%C5%91z%C5%91_Exner)
 
 ## Installation
 

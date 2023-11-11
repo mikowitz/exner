@@ -14,4 +14,14 @@ defmodule Exner.SquareTest do
       refute Square.is_valid?(:i3)
     end
   end
+
+  describe "shift/2" do
+    test "shifts a square by the given delta" do
+      assert Square.shift(:a2, {2, 1}) == :c3
+    end
+
+    test "returns nil if the movement is off the board" do
+      assert Square.shift(:a2, {-1, 0}) == {:error, :invalid_shift, {:a2, {-1, 0}}}
+    end
+  end
 end

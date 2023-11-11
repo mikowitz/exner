@@ -1,5 +1,5 @@
 defmodule Exner.Board do
-  alias Exner.Piece
+  alias Exner.{Move, MoveGenerator, Piece, Square}
 
   defstruct [
     :pieces,
@@ -15,53 +15,77 @@ defmodule Exner.Board do
     %__MODULE__{pieces: pieces}
   end
 
-  defimpl Exner.FEN do
-    def to_fen(%@for{} = board) do
-      [
-        pieces(board.pieces),
-        side(board.side_to_move),
-        castling(board.castling_rights),
-        en_passant(board.en_passant_square),
-        clocks(board.halfmove_clock, board.fullmove_clock)
-      ]
-      |> Enum.join(" ")
-    end
-
-    defp pieces(pieces) do
-      for r <- ?8..?1 do
-        for f <- ?a..?h do
-          key = String.to_atom(to_string([f, r]))
-          pieces[key]
-        end
-        |> collapse_rank_fen()
-      end
-      |> Enum.join("/")
-    end
-
-    defp collapse_rank_fen(squares) do
-      squares
-      |> Enum.chunk_by(&is_nil/1)
-      |> Enum.map(fn
-        [nil | _] = l -> to_string(length(l))
-        l -> l |> Enum.map(&@protocol.to_fen/1) |> Enum.join("")
-      end)
-      |> Enum.join("")
-    end
-
-    defp side(:white), do: "w"
-    defp side(:black), do: "b"
-
-    defp castling(rights) do
-      [K: 8, Q: 4, k: 2, q: 1]
-      |> Enum.filter(fn {_key, bit} -> Bitwise.band(bit, rights) == bit end)
-      |> Enum.map(&elem(&1, 0))
-      |> Enum.map(&to_string/1)
-      |> Enum.join("")
-    end
-
-    defp en_passant(nil), do: "-"
-    defp en_passant(square), do: to_string(square)
-
-    defp clocks(halfmoves, fullmoves), do: [halfmoves, fullmoves] |> Enum.join(" ")
+  def move(%__MODULE__{side_to_move: side_to_move}, _move, color)
+      when side_to_move != color do
+    {:error, :wrong_side_to_move, color}
   end
+
+  def move(%__MODULE__{} = board, %Move{castle: nil} = move, color) do
+    {from, to} = MoveGenerator.for(board, move)
+
+    mover = board.pieces[from]
+
+    mover =
+      case move.promotion do
+        nil -> mover
+        role -> %{mover | role: role}
+      end
+
+    pieces =
+      board.pieces
+      |> Keyword.delete(from)
+      |> Keyword.put(to, mover)
+
+    %__MODULE__{board | pieces: pieces}
+    |> toggle_side_to_move()
+    |> check_for_en_passant(move.role, color, from, to)
+  end
+
+  def move(%__MODULE__{} = board, %Move{castle: castle} = move, _color)
+      when castle in [:kingside, :queenside] do
+    [{king_from, king_to}, {rook_from, rook_to}] = MoveGenerator.for(board, move)
+
+    king = board.pieces[king_from]
+    rook = board.pieces[rook_from]
+
+    pieces =
+      board.pieces
+      |> Keyword.delete(king_from)
+      |> Keyword.put(king_to, king)
+      |> Keyword.delete(rook_from)
+      |> Keyword.put(rook_to, rook)
+
+    %__MODULE__{board | pieces: pieces}
+    |> toggle_side_to_move()
+  end
+
+  def move(%__MODULE__{} = board, move, color) do
+    with %Move{} = move <- Move.from_pgn(move, color) do
+      move(board, move, color)
+    end
+  end
+
+  defp toggle_side_to_move(%__MODULE__{side_to_move: :white} = board),
+    do: %__MODULE__{board | side_to_move: :black}
+
+  defp toggle_side_to_move(%__MODULE__{side_to_move: :black} = board),
+    do: %__MODULE__{board | side_to_move: :white}
+
+  defp check_for_en_passant(board, :pawn, color, from, to) do
+    [ff, fr] = Square.square_to_coords(from)
+    [tf, tr] = Square.square_to_coords(to)
+
+    case abs(fr - tr) == 2 && abs(ff - tf) == 0 do
+      false ->
+        board
+
+      true ->
+        case color do
+          :white -> %__MODULE__{board | en_passant_square: Square.shift(to, {0, -1})}
+          :black -> %__MODULE__{board | en_passant_square: Square.shift(to, {0, 1})}
+        end
+    end
+  end
+
+  defp check_for_en_passant(board, _, _, _, _), do: board
 end
