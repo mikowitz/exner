@@ -1,4 +1,8 @@
 defmodule Exner.Piece do
+  @moduledoc """
+  Models a chess piece
+  """
+
   defstruct [:role, :color, origin: nil]
 
   alias Exner.{Move, Square}

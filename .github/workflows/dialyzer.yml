@@ -1,0 +1,36 @@
+name: "Dialyzer"
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  dialyzer:
+    name: Dialyzer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache PLT files
+        id: cache-plt
+        uses: actions/cache@v3
+        with:
+          path: |
+            _build/dev/*.plt
+            _build/dev/*.plt.hash
+          key: plt-cache-${{ runner.os }}-26-1.16-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            plt-cache-
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "26"
+          elixir-version: "1.16"
+
+      - run: mix deps.get
+
+      - run: mix dialyzer

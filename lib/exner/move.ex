@@ -1,4 +1,8 @@
 defmodule Exner.Move do
+  @moduledoc """
+  Models a chess move parsed from PGN notation
+  """
+
   defstruct [
     :color,
     :role,

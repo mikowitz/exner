@@ -1,4 +1,8 @@
 defmodule Exner.PgnParser do
+  @moduledoc """
+  Functions to parse files and moves in PGN notation
+  """
+
   alias Exner.Move
 
   @move_regex ~r/
