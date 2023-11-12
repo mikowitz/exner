@@ -1,4 +1,8 @@
 defmodule Exner.MoveGenerator do
+  @moduledoc """
+  Helper functions to generate valid moves.
+  """
+
   alias Exner.{Move, Piece, Square}
 
   @knight_moves [{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}]
@@ -51,15 +55,15 @@ defmodule Exner.MoveGenerator do
   def for(board, move) do
     from_and_mover =
       board.pieces
-      |> Enum.filter(fn {_square, piece} -> Piece.can_make_move?(piece, move) end)
       |> Enum.filter(fn {square, piece} ->
-        move.to in potential_destinations(piece, square, board, move)
-      end)
-      |> Enum.filter(fn {square, _piece} ->
-        case move.from do
-          nil -> true
-          from -> String.contains?(to_string(square), from)
-        end
+        from_condition =
+          case move.from do
+            nil -> true
+            from -> String.contains?(to_string(square), from)
+          end
+
+        Piece.can_make_move?(piece, move) and from_condition and
+          move.to in potential_destinations(piece, square, board, move)
       end)
       |> List.first()
 
@@ -153,21 +157,19 @@ defmodule Exner.MoveGenerator do
     |> Enum.reject(&is_nil/1)
   end
 
-  defp check_for_occupancy(square, piece, board, move) do
+  defp check_for_occupancy(square, piece, board, move, results \\ []) do
     case board.pieces[square] do
       nil ->
-        square
+        Keyword.get(results, :empty, square)
 
       %Piece{} = encountered_piece ->
-        if encountered_piece.color == piece.color do
-          nil
-        else
-          if move.capture do
-            square
-          else
-            nil
-          end
-        end
+        can_and_should_capture(
+          piece,
+          encountered_piece,
+          move.capture,
+          Keyword.get(results, :capture, square),
+          Keyword.get(results, :quiet, nil)
+        )
     end
   end
 
@@ -180,24 +182,24 @@ defmodule Exner.MoveGenerator do
           {:halt, acc}
 
         true ->
-          case board.pieces[destination] do
-            nil ->
-              {:cont, [destination | acc]}
-
-            %Piece{} = encountered_piece ->
-              if encountered_piece.color == piece.color do
-                {:halt, acc}
-              else
-                if move.capture do
-                  {:halt, [destination | acc]}
-                else
-                  {:halt, acc}
-                end
-              end
-          end
+          check_for_occupancy(
+            destination,
+            piece,
+            board,
+            move,
+            empty: {:cont, [destination | acc]},
+            capture: {:halt, [destination | acc]},
+            quiet: {:halt, acc}
+          )
       end
     end)
   end
+
+  defp can_and_should_capture(%{color: color}, %{color: color}, _, _, quiet_result),
+    do: quiet_result
+
+  defp can_and_should_capture(_, _, true, capture_result, _quiet_result), do: capture_result
+  defp can_and_should_capture(_, _, false, _capture_result, quiet_result), do: quiet_result
 
   defp color_polarity(:white), do: 1
   defp color_polarity(:black), do: -1

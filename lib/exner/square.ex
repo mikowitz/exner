@@ -1,38 +1,48 @@
 defmodule Exner.Square do
+  @moduledoc """
+  Helper methods for resolving file/rank coordinates on the chess board
+  """
+
+  defstruct [:rank, :file]
+
   # rank: 1 - 8
   # file: a - h
 
-  def is_valid?(square) when is_atom(square) do
-    [f, r] = square_to_fr(square)
-    f in ?a..?h and r in ?1..?8
-  end
-
-  def is_valid?(_), do: false
-
-  def shift(square, {df, dr}) do
-    [f, r] = square_to_coords(square)
-
-    [f, r] = [f + df, r + dr]
-
-    case f in 1..8 and r in 1..8 do
-      false -> {:error, :invalid_shift, {square, {df, dr}}}
-      true -> coords_to_square(f, r)
-    end
-  end
-
-  def square_to_fr(square) do
-    Atom.to_string(square) |> to_charlist()
-  end
-
-  def square_to_coords(square) do
-    [f, r] = square_to_fr(square)
-
+  def to_coords(square) do
+    %{rank: r, file: f} = from_atom(square)
     [f - ?`, r - ?0]
   end
 
-  defp coords_to_square(f, r) do
-    [f + ?`, r + ?0]
-    |> to_string()
-    |> String.to_atom()
+  def is_valid?(%__MODULE__{rank: rank, file: file}) when rank in ?1..?8 and file in ?a..?h,
+    do: true
+
+  def is_valid?(square) when is_atom(square) do
+    square
+    |> from_atom()
+    |> is_valid?()
+  end
+
+  def is_valid?({f, r}) when f in 1..8 and r in 1..8, do: true
+
+  def is_valid?(_), do: false
+
+  def shift(square_name, {df, dr}) do
+    square = from_atom(square_name)
+
+    square = %{square | rank: square.rank + dr, file: square.file + df}
+
+    case is_valid?(square) do
+      false -> {:error, :invalid_shift, {square_name, {df, dr}}}
+      true -> to_atom(square)
+    end
+  end
+
+  defp from_atom(square) when is_atom(square) do
+    [f, r] = Atom.to_string(square) |> to_charlist()
+    %__MODULE__{rank: r, file: f}
+  end
+
+  defp to_atom(%__MODULE__{file: f, rank: r}) do
+    String.to_atom(to_string([f, r]))
   end
 end

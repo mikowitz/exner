@@ -24,11 +24,10 @@ defimpl Exner.FEN, for: Exner.Board do
   defp collapse_rank_fen(squares) do
     squares
     |> Enum.chunk_by(&is_nil/1)
-    |> Enum.map(fn
+    |> Enum.map_join("", fn
       [nil | _] = l -> to_string(length(l))
-      l -> l |> Enum.map(&@protocol.to_fen/1) |> Enum.join("")
+      l -> Enum.map_join(l, "", &@protocol.to_fen/1)
     end)
-    |> Enum.join("")
   end
 
   defp side(:white), do: "w"
@@ -38,8 +37,7 @@ defimpl Exner.FEN, for: Exner.Board do
     [K: 8, Q: 4, k: 2, q: 1]
     |> Enum.filter(fn {_key, bit} -> Bitwise.band(bit, rights) == bit end)
     |> Enum.map(&elem(&1, 0))
-    |> Enum.map(&to_string/1)
-    |> Enum.join("")
+    |> Enum.map_join("", &to_string/1)
   end
 
   defp en_passant(nil), do: "-"

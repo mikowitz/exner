@@ -1,4 +1,8 @@
 defmodule Exner.Board do
+  @moduledoc """
+  Models a chessboard + additional context needed to play a game
+  """
+
   alias Exner.{Move, MoveGenerator, Piece, Square}
 
   defstruct [
@@ -65,25 +69,20 @@ defmodule Exner.Board do
     end
   end
 
-  defp toggle_side_to_move(%__MODULE__{side_to_move: :white} = board),
-    do: %__MODULE__{board | side_to_move: :black}
+  @next_color [white: :black, black: :white]
 
-  defp toggle_side_to_move(%__MODULE__{side_to_move: :black} = board),
-    do: %__MODULE__{board | side_to_move: :white}
+  defp toggle_side_to_move(%__MODULE__{side_to_move: color} = board),
+    do: %__MODULE__{board | side_to_move: @next_color[color]}
+
+  @en_passant_coords [white: {0, -1}, black: {0, 1}]
 
   defp check_for_en_passant(board, :pawn, color, from, to) do
-    [ff, fr] = Square.square_to_coords(from)
-    [tf, tr] = Square.square_to_coords(to)
+    [ff, fr] = Square.to_coords(from)
+    [tf, tr] = Square.to_coords(to)
 
     case abs(fr - tr) == 2 && abs(ff - tf) == 0 do
-      false ->
-        board
-
-      true ->
-        case color do
-          :white -> %__MODULE__{board | en_passant_square: Square.shift(to, {0, -1})}
-          :black -> %__MODULE__{board | en_passant_square: Square.shift(to, {0, 1})}
-        end
+      false -> board
+      true -> %__MODULE__{board | en_passant_square: Square.shift(to, @en_passant_coords[color])}
     end
   end
 
