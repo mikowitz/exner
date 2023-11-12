@@ -3,13 +3,23 @@ defmodule Exner.Piece do
   Models a chess piece
   """
 
+  alias Exner.{Move, Square}
+
   defstruct [:role, :color, origin: nil]
 
-  alias Exner.{Move, Square}
+  @type role :: :pawn | :knight | :bishop | :rook | :queen | :king
+  @type color :: :white | :black
+
+  @type t :: %__MODULE__{
+          role: role(),
+          color: color(),
+          origin: Square.name()
+        }
 
   @roles ~w(pawn knight bishop rook queen king)a
   @colors ~w(white black)a
 
+  @spec place(t(), Square.name()) :: t() | {:error, atom(), atom()}
   def place(%__MODULE__{} = piece, square) do
     case Square.is_valid?(square) do
       true -> %__MODULE__{piece | origin: square}
@@ -17,11 +27,13 @@ defmodule Exner.Piece do
     end
   end
 
+  @spec can_make_move?(t(), Move.t()) :: boolean()
   def can_make_move?(%__MODULE__{role: role, color: color}, %Move{role: role, color: color}),
     do: true
 
   def can_make_move?(_, _), do: false
 
+  @spec from(String.t() | char()) :: t() | {:error, atom(), String.t()}
   def from(s) when is_bitstring(s) do
     case s |> to_charlist() |> List.first() |> from() do
       %__MODULE__{} = piece -> piece
@@ -44,6 +56,7 @@ defmodule Exner.Piece do
   def from(c), do: {:error, :invalid_piece_char, c}
 
   for role <- @roles do
+    @spec unquote(role)(color()) :: t()
     def unquote(role)(color) when color in @colors do
       %__MODULE__{color: color, role: unquote(role)}
     end
@@ -52,6 +65,7 @@ defmodule Exner.Piece do
   end
 
   for color <- @colors do
+    @spec unquote(color)(role()) :: t()
     def unquote(color)(role) when role in @roles do
       %__MODULE__{color: unquote(color), role: role}
     end
@@ -59,10 +73,8 @@ defmodule Exner.Piece do
     def unquote(color)(role), do: {:error, :invalid_piece_role, role}
   end
 
-  def default_starting_positions do
-    starting_pieces()
-    |> Enum.map(fn piece -> {piece.origin, piece} end)
-  end
+  @spec default_starting_positions() :: keyword(t())
+  def default_starting_positions, do: Enum.map(starting_pieces(), &{&1.origin, &1})
 
   @starting_positions [
     white: [
@@ -83,6 +95,7 @@ defmodule Exner.Piece do
     ]
   ]
 
+  @spec starting_pieces() :: list(t())
   def starting_pieces do
     for {color, roles} <- @starting_positions do
       for {role, squares} <- roles do
