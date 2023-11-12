@@ -15,9 +15,21 @@ defmodule Exner.Board do
     fullmove_clock: 1
   ]
 
+  @type t :: %__MODULE__{
+          pieces: keyword(Piece.t()),
+          side_to_move: Piece.color(),
+          castling_rights: 0..15,
+          en_passant_square: Square.name() | nil,
+          halfmove_clock: integer(),
+          fullmove_clock: pos_integer()
+        }
+
+  @spec new(keyword(Piece.t()) | nil) :: t()
   def new(pieces \\ Piece.default_starting_positions()) do
     %__MODULE__{pieces: pieces}
   end
+
+  @spec move(t(), Move.t(), Piece.color()) :: t() | {:error, atom, Piece.color()}
 
   def move(%__MODULE__{side_to_move: side_to_move}, _move, color)
       when side_to_move != color do

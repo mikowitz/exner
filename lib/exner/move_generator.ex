@@ -3,7 +3,7 @@ defmodule Exner.MoveGenerator do
   Helper functions to generate valid moves.
   """
 
-  alias Exner.{Move, Piece, Square}
+  alias Exner.{Board, Move, Piece, Square}
 
   @knight_moves [{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}]
 
@@ -41,6 +41,8 @@ defmodule Exner.MoveGenerator do
     queenside: [{-2, 0}, {3, 0}]
   ]
 
+  @spec for(Board.t(), Move.t()) ::
+          list({Square.name(), Square.name()}) | {Square.name(), Square.name()}
   def for(_board, %Move{castle: castle, color: color}) when not is_nil(castle) do
     [king, rook] = @castling_positions[castle][color]
 

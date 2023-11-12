@@ -23,6 +23,7 @@ defmodule Exner.MixProject do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.27", only: [:dev, :test], runtime: false},
       {:mix_test_watch, "~> 1.0", only: [:test], runtime: false}
     ]
   end
