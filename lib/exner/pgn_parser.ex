@@ -35,7 +35,7 @@ defmodule Exner.PgnParser do
     rounds =
       Regex.scan(@round_regex, text)
       |> Enum.map(fn [_, white, black] ->
-        [Move.from_pgn(white, :white), Move.from_pgn(black, :black)]
+        [Move.from_pgn(white, :white), Move.from_pgn(black, :black)] |> Enum.reject(&is_nil/1)
       end)
 
     %{
@@ -46,6 +46,10 @@ defmodule Exner.PgnParser do
 
   def move("O-O"), do: {:ok, %{castle: :kingside}}
   def move("O-O-O"), do: {:ok, %{castle: :queenside}}
+
+  def move("1-0"), do: nil
+  def move("0-1"), do: nil
+  def move("1/2-1/2"), do: nil
 
   def move(move) do
     parsed = Regex.named_captures(@move_regex, move)
@@ -67,7 +71,7 @@ defmodule Exner.PgnParser do
   defp parse_role("R"), do: :rook
   defp parse_role("B"), do: :bishop
   defp parse_role("N"), do: :knight
-  defp parse_role(""), do: :pawn
+  defp parse_role(_), do: :pawn
 
   defp parse_from(""), do: nil
   defp parse_from(from), do: from
